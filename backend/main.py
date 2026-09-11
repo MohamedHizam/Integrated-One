@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,12 +20,19 @@ except ModuleNotFoundError:
 
 app = FastAPI(title="Employment Readiness Prediction API")
 
+frontend_url = os.getenv("FRONTEND_URL")
+
+allowed_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+if frontend_url:
+    allowed_origins.append(frontend_url.rstrip("/"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,7 +41,9 @@ app.add_middleware(
 
 @app.get("/")
 def read_root() -> dict[str, str]:
-    return {"message": "Employment Readiness Prediction API is running"}
+    return {
+        "message": "Employment Readiness Prediction API is running"
+    }
 
 
 @app.get("/health")
@@ -46,12 +57,25 @@ def legacy_health_check() -> dict[str, str]:
 
 
 @app.post("/predict/employment-readiness")
-def employment_readiness_prediction(request: EmploymentReadinessRequest) -> dict[str, object]:
+def employment_readiness_prediction(
+    request: EmploymentReadinessRequest
+) -> dict[str, object]:
     try:
-        return predict_employment_readiness(request.to_student_data())
+        return predict_employment_readiness(
+            request.to_student_data()
+        )
     except ModelLoadingError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc)
+        ) from exc
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc)
+        ) from exc
     except ModelPredictionError as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc)
+        ) from exc
